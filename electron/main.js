@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, shell, dialog } = require("electron");
+const { app, BrowserWindow, Menu, Tray, Notification, clipboard, dialog, ipcMain, nativeImage, shell } = require("electron");
 const { spawn, execFile } = require("node:child_process");
 const { promisify } = require("node:util");
 const fs = require("node:fs");
@@ -12,6 +12,8 @@ const PORT = Number(process.env.DSH_PORT || 3080);
 const HOST = "127.0.0.1";
 const WEB_URL = `http://${HOST}:${PORT}`;
 const READY_TIMEOUT_MS = Number(process.env.DSH_READY_TIMEOUT_MS || 180_000);
+/** 关窗是否最小化到托盘（0 关闭该行为） */
+const CLOSE_TO_TRAY = process.env.DSH_CLOSE_TO_TRAY !== "0";
 
 app.setAppUserModelId("ai.deepseek.harness.desktop");
 app.setName("DeepSeek Harness");
@@ -23,9 +25,13 @@ const ICON_PATH = process.platform === "win32" && fs.existsSync(ICON_ICO) ? ICON
 
 /** @type {BrowserWindow | null} */
 let mainWindow = null;
+/** @type {import("electron").Tray | null} */
+let tray = null;
 /** @type {import("node:child_process").ChildProcess | null} */
 let dshProcess = null;
 let shuttingDown = false;
+/** 用户确认过退出（或系统在退出中）：此时关窗不再拦为托盘 */
+let quitting = false;
 
 function workspaceDir() {
   return process.env.DSH_WORKSPACE || PROJECT_ROOT;
@@ -43,6 +49,9 @@ function spawnEnv() {
   }
   env.BROWSER = "none";
   env.DSH_WEB_NO_OPEN = "1";
+  // 用 Electron 自带的 Node 跑 dsh，打包后不再依赖系统 Node。
+  // 若 DSH_NODE 指向普通 node，该变量会被忽略，无害。
+  env.ELECTRON_RUN_AS_NODE = "1";
   return env;
 }
 
@@ -50,30 +59,9 @@ function resolveNodeBinary() {
   if (process.env.DSH_NODE && fs.existsSync(process.env.DSH_NODE)) {
     return process.env.DSH_NODE;
   }
-
-  const which = process.platform === "win32" ? "where" : "which";
-  try {
-    const stdout = require("node:child_process").execFileSync(which, ["node"], {
-      encoding: "utf8",
-      windowsHide: true,
-    });
-    const first = stdout
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .find((line) => line && !line.toLowerCase().includes("windowsapps"));
-    if (first && fs.existsSync(first)) return first;
-  } catch {
-    /* fall through */
-  }
-
-  const fallbacks =
-    process.platform === "win32"
-      ? ["C:\\Program Files\\nodejs\\node.exe", "C:\\Program Files (x86)\\nodejs\\node.exe"]
-      : ["/usr/local/bin/node", "/usr/bin/node"];
-  const found = fallbacks.find((candidate) => fs.existsSync(candidate));
-  if (found) return found;
-
-  throw new Error("未找到 Node.js。请安装 Node.js 20+ 并确保 node 在 PATH 中。");
+  // Electron 内置 Node（22.x，经 ELECTRON_RUN_AS_NODE 生效），
+  // 运行/打包产物均无需系统安装 Node.js。
+  return process.execPath;
 }
 
 function resolveDshBin() {
@@ -219,6 +207,143 @@ function setSplashStatus(message, isError = false) {
   mainWindow.webContents.executeJavaScript(script).catch(() => {});
 }
 
+// ── 桌面桥：页面（window.dshDesktop）→ IPC → 主进程 ────────────────────────
+
+function isTrustedSender(event) {
+  const url = event.senderFrame?.url ?? "";
+  return (
+    url.startsWith(WEB_URL) ||
+    url.startsWith(`http://localhost:${PORT}`) ||
+    url.startsWith("file:")
+  );
+}
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+async function requestQuit() {
+  if (quitting || shuttingDown) return;
+  const options = {
+    type: "question",
+    buttons: ["退出", "取消"],
+    defaultId: 1,
+    cancelId: 1,
+    title: "退出 DeepSeek Harness",
+    message: "确定要退出吗？",
+    detail: "退出将停止 dsh web 服务与正在运行的后台任务。",
+  };
+  const result =
+    mainWindow && !mainWindow.isDestroyed()
+      ? await dialog.showMessageBox(mainWindow, options)
+      : await dialog.showMessageBox(options);
+  if (result.response === 0) app.quit();
+}
+
+function registerDesktopIpc() {
+  const handlers = {
+    "desktop:notify": (_event, payload = {}) => {
+      if (!Notification.isSupported()) return false;
+      new Notification({
+        title: String(payload.title ?? "DeepSeek Harness"),
+        body: String(payload.body ?? ""),
+        silent: Boolean(payload.silent),
+      }).show();
+      return true;
+    },
+
+    "desktop:pickFile": async (_event, opts = {}) => {
+      const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+      const result = win
+        ? await dialog.showOpenDialog(win, { properties: ["openFile"], ...opts })
+        : await dialog.showOpenDialog({ properties: ["openFile"], ...opts });
+      return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0];
+    },
+
+    "desktop:pickFolder": async (_event, opts = {}) => {
+      const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+      const result = win
+        ? await dialog.showOpenDialog(win, { properties: ["openDirectory"], ...opts })
+        : await dialog.showOpenDialog({ properties: ["openDirectory"], ...opts });
+      return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0];
+    },
+
+    "desktop:saveFile": async (_event, opts = {}) => {
+      const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined;
+      const result = win
+        ? await dialog.showSaveDialog(win, opts)
+        : await dialog.showSaveDialog(opts);
+      return result.canceled || !result.filePath ? null : result.filePath;
+    },
+
+    "desktop:clipboard:readText": () => clipboard.readText(),
+    "desktop:clipboard:writeText": (_event, text) => {
+      clipboard.writeText(String(text ?? ""));
+      return true;
+    },
+
+    "desktop:window:show": () => {
+      showMainWindow();
+      return true;
+    },
+    "desktop:window:hide": () => {
+      mainWindow?.hide();
+      return true;
+    },
+    "desktop:window:minimize": () => {
+      mainWindow?.minimize();
+      return true;
+    },
+    "desktop:window:setAlwaysOnTop": (_event, flag) => {
+      mainWindow?.setAlwaysOnTop(Boolean(flag));
+      return true;
+    },
+
+    "desktop:setProgressBar": (_event, progress) => {
+      if (typeof progress === "number") {
+        mainWindow?.setProgressBar(progress < 0 ? -1 : Math.min(1, progress));
+      }
+      return true;
+    },
+
+    "desktop:quit": () => {
+      void requestQuit();
+      return true;
+    },
+  };
+
+  for (const [channel, handler] of Object.entries(handlers)) {
+    ipcMain.handle(channel, async (event, payload) => {
+      if (!isTrustedSender(event)) return undefined;
+      return handler(event, payload);
+    });
+  }
+}
+
+// ── 托盘 ───────────────────────────────────────────────────────────────────
+
+function createTray() {
+  if (!fs.existsSync(ICON_PATH)) return;
+  const icon = nativeImage.createFromPath(ICON_PATH);
+  tray = new Tray(icon);
+  tray.setToolTip("DeepSeek Harness");
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: "显示主窗口", click: showMainWindow },
+      { label: "隐藏主窗口", click: () => mainWindow?.hide() },
+      { type: "separator" },
+      { label: "退出", click: () => void requestQuit() },
+    ]),
+  );
+  tray.on("click", showMainWindow);
+  tray.on("double-click", showMainWindow);
+}
+
+// ── dsh 子进程 ─────────────────────────────────────────────────────────────
+
 async function startDsh() {
   setSplashStatus(`正在释放 ${PORT} 端口…`);
   await killPort(PORT);
@@ -258,6 +383,8 @@ async function stopDsh() {
   await killPort(PORT);
 }
 
+// ── 窗口 ───────────────────────────────────────────────────────────────────
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -270,15 +397,25 @@ function createWindow() {
     autoHideMenuBar: true,
     show: false,
     webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // 后台/隐藏时不做 timer 与渲染节流，agent 流式输出与长任务更稳
+      backgroundThrottling: false,
     },
   });
 
   mainWindow.once("ready-to-show", () => mainWindow?.show());
   mainWindow.on("closed", () => {
     mainWindow = null;
+  });
+
+  // 关窗 → 最小化到托盘（用户确认退出时不再拦截）
+  mainWindow.on("close", (event) => {
+    if (quitting || shuttingDown || !CLOSE_TO_TRAY) return;
+    event.preventDefault();
+    mainWindow.hide();
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -302,10 +439,32 @@ function createWindow() {
       {
         label: "应用",
         submenu: [
-          { role: "reload", label: "刷新" },
-          { role: "toggleDevTools", label: "开发者工具" },
+          { label: "刷新", role: "reload" },
+          { label: "开发者工具", role: "toggleDevTools" },
           { type: "separator" },
-          { role: "quit", label: "退出" },
+          { label: "退出", click: () => void requestQuit() },
+        ],
+      },
+      {
+        label: "编辑",
+        submenu: [
+          { label: "撤销", role: "undo" },
+          { label: "重做", role: "redo" },
+          { type: "separator" },
+          { label: "剪切", role: "cut" },
+          { label: "复制", role: "copy" },
+          { label: "粘贴", role: "paste" },
+          { label: "全选", role: "selectAll" },
+        ],
+      },
+      {
+        label: "视图",
+        submenu: [
+          { label: "实际大小", role: "resetZoom" },
+          { label: "放大", role: "zoomIn" },
+          { label: "缩小", role: "zoomOut" },
+          { type: "separator" },
+          { label: "全屏", role: "togglefullscreen" },
         ],
       },
     ]),
@@ -314,13 +473,25 @@ function createWindow() {
   return mainWindow.loadFile(path.join(__dirname, "splash.html"));
 }
 
+// ── 启动 ───────────────────────────────────────────────────────────────────
+
 async function boot() {
+  registerDesktopIpc();
+  createTray();
   await createWindow();
   try {
     await startDsh();
     if (!mainWindow || mainWindow.isDestroyed()) return;
     setSplashStatus("正在打开界面…");
     await mainWindow.loadURL(WEB_URL);
+
+    // 冒烟自检：桥是否注入成功（结果写入日志）
+    try {
+      const hasBridge = await mainWindow.webContents.executeJavaScript("typeof window.dshDesktop");
+      appendLog(`\n[bridge] window.dshDesktop: ${hasBridge}\n`);
+    } catch (error) {
+      appendLog(`\n[bridge] check failed: ${error instanceof Error ? error.message : String(error)}\n`);
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     appendLog(`\nboot failed: ${message}\n`);
@@ -336,20 +507,20 @@ if (!gotLock) {
   app.quit();
 } else {
   app.on("second-instance", () => {
-    if (!mainWindow) return;
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.focus();
+    showMainWindow();
   });
 
   app.whenReady().then(boot);
 
   app.on("window-all-closed", () => {
-    app.quit();
+    // 托盘常驻：所有窗口关闭后应用继续在后台运行（退出时 quitting=true 才真正退出）
+    if (quitting) app.quit();
   });
 
   app.on("before-quit", (event) => {
     if (shuttingDown) return;
     event.preventDefault();
+    quitting = true;
     shuttingDown = true;
     stopDsh()
       .catch((error) => appendLog(`\nstop failed: ${error instanceof Error ? error.stack : error}\n`))
