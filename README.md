@@ -40,6 +40,12 @@ npm run dist
 > **原生模块构建说明**：node-pty 的 `binding.gyp` 默认请求 Spectre 缓解（MSB8040），
 > 若本机 VS 工具链未安装 "Spectre-mitigated libraries" 组件会编译失败。
 > 项目通过 `postinstall`（`scripts/patch-node-pty.cjs`）自动把该选项关闭，`npm install` 后即可直接打包。
+>
+> **依赖打包说明**：electron-builder 只沿 `dependencies` 边收集生产依赖，dsh 闭包中的
+> peer/optional 依赖（`@deepseek-ai/cordis-plugin-group`、`dsh-invariants`、`dsh-compaction`、
+> `dsh-fs`/`dsh-shell` 等抽象接口包）会被丢弃，导致打包版启动报 `ERR_MODULE_NOT_FOUND`。
+> 这些包已显式声明在应用 `dependencies` 中（见 `package.json`）；升级 `@deepseek-ai/dsh` 后
+> 若出现新的缺失，用 `npm ls --omit=dev --all --parseable` 与打包树对比补齐即可。
 
 ## 配置（环境变量）
 
