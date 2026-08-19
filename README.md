@@ -37,6 +37,10 @@ npm run dist
 
 产物输出到 `release/`：`DeepSeek Harness Setup <version>.exe`（NSIS 安装包）与 portable 版本。
 
+> **原生模块构建说明**：node-pty 的 `binding.gyp` 默认请求 Spectre 缓解（MSB8040），
+> 若本机 VS 工具链未安装 "Spectre-mitigated libraries" 组件会编译失败。
+> 项目通过 `postinstall`（`scripts/patch-node-pty.cjs`）自动把该选项关闭，`npm install` 后即可直接打包。
+
 ## 配置（环境变量）
 
 | 变量 | 默认 | 说明 |
