@@ -51,21 +51,13 @@ contextBridge.exposeInMainWorld("dshDesktop", {
 
   /** 请求退出应用（会走退出确认） */
   quit: () => invoke("desktop:quit"),
-
-  /** 护眼模式：内置深绿护眼主题（默认开启），样式见 electron/eye-care.css */
-  eyeCare: {
-    isActive: () => localStorage.getItem(EYE_CARE_KEY) !== "0",
-    setActive: (flag) => {
-      localStorage.setItem(EYE_CARE_KEY, flag ? "1" : "0");
-      document.documentElement.setAttribute("data-dsh-eye-care", flag ? "1" : "0");
-      return flag;
-    },
-  },
 });
 
-// ── 护眼模式：从主进程取样式表注入页面（作用域 html[data-dsh-eye-care]）────
-
-const EYE_CARE_KEY = "dsh.eyeCare";
+// ── 护眼模式：注入样式表（作用域 html[data-dsh-eye-care]）─────────────────
+// 开关由 dsh 设置「外观 → 护眼」驱动（ui-theme.preference = "eye-care"，
+// 见 scripts/patch-theme-eye-care.cjs）。host 的 boot 脚本会把
+// data-dsh-eye-care 盖在 <body> 上，这里在 DOM 就绪后镜像到 <html>，
+// 激活本 preload 注入的样式（覆盖客户端主题激活前的启动区间）。
 
 async function applyEyeCare() {
   try {
@@ -78,9 +70,10 @@ async function applyEyeCare() {
       document.head.appendChild(style);
     }
     style.textContent = css;
-    // 默认开启（localStorage 未设置时视为开启）
-    const active = localStorage.getItem(EYE_CARE_KEY) !== "0";
-    document.documentElement.setAttribute("data-dsh-eye-care", active ? "1" : "0");
+    document.documentElement.setAttribute(
+      "data-dsh-eye-care",
+      document.body.hasAttribute("data-dsh-eye-care") ? "1" : "0",
+    );
   } catch {
     /* 桥不可用时静默降级（如直接浏览器访问） */
   }

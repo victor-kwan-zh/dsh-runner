@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "postinstall": "node scripts/patch-node-pty.cjs",
+    "postinstall": "node scripts/patch-node-pty.cjs && node scripts/patch-theme-eye-care.cjs",
     "pack": "electron-builder --dir",
     "dist": "electron-builder --win"
   },

@@ -92,15 +92,15 @@ npm run dist
 
 ## 护眼模式（内置主题）
 
-内置深绿护眼主题（低蓝光、低对比），**默认开启**，不依赖任何第三方皮肤插件。样式在 `electron/eye-care.css`，由 preload 注入页面（作用域 `html[data-dsh-eye-care="1"]`）。
+内置深绿护眼主题（低蓝光、低对比），不依赖任何第三方皮肤插件。已集成到 **dsh 设置 → 外观**：主题选择器为 **浅色 / 深色 / 跟随系统 / 护眼** 四个选项，选择"护眼"即时生效并持久化（`~/.dsh/settings.yaml` 的 `ui-theme.preference: eye-care`）。
 
 | 项 | 说明 |
 |---|---|
-| `window.dshDesktop.eyeCare.isActive()` | 查询是否开启 |
-| `window.dshDesktop.eyeCare.setActive(true/false)` | 开/关（即时生效，持久化在 localStorage） |
-| 关闭后恢复 | 应用自带默认主题（浅/深跟随系统） |
+| 切换入口 | 设置 → 外观 → 主题选择器（第 4 个选项"护眼"） |
+| 实现 | `scripts/patch-theme-eye-care.cjs`（postinstall 自动给 dsh 主题插件打补丁：注册 eye-care 主题 + 选项 + i18n）+ `electron/eye-care.css`（启动区间样式） |
+| 特点 | 深绿纯色 + 柔和径向光晕，**无扫描线/无动画**；设计令牌（`--dsw-alias-*`/`--aion-*`）由主题系统原生应用（body 内联 CSS 变量） |
 
-> 背景为深绿纯色 + 柔和径向光晕，**无扫描线/无动画**；设计令牌（`--dsw-alias-*`/`--aion-*`）在 body 级覆盖，浅/深色系统下均生效。
+> dsh 升级后若"护眼"选项消失，重跑 `npm install`（postinstall 自动重打）或手动 `node scripts/patch-theme-eye-care.cjs`；脚本对目标片段严格校验，任何一处不匹配都会明确报错，不会静默失效。
 
 ## 日志
 
@@ -113,7 +113,7 @@ npm run dist
 ├── electron/
 │   ├── main.js               # Electron 主进程：进程管理、窗口、托盘、IPC、生命周期
 │   ├── preload.js            # 桌面桥：contextBridge 暴露 window.dshDesktop + 护眼模式注入
-│   ├── eye-care.css          # 内置护眼模式样式（深绿主题，默认开启）
+│   ├── eye-care.css          # 内置护眼模式样式（主题选项「护眼」）
 │   ├── desktop-api.js        # 本地 API 服务（agent 工具后端，token 鉴权）
 │   ├── desktop-plugin/       # dsh 桌面插件：注册 desktop.* agent 工具（--patch 注入）
 │   └── splash.html           # 启动画面
