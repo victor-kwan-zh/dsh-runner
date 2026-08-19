@@ -1,0 +1,44 @@
+# 依赖
+node_modules/
+
+# 构建产物
+release/
+dist/
+out/
+.electron-builder/
+
+# 运行时状态（dsh 配置/会话等本地数据）
+.dsh/
+
+# 日志
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 环境变量 / 密钥（示例文件除外）
+.env
+.env.*
+!.env.example
+
+# 编辑器 / IDE
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+
+# 操作系统
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 临时文件
+*.tmp
+*.temp
+*.bak
+.cache/
