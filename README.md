@@ -90,6 +90,18 @@ npm run dist
 
 手动直接运行 `dsh web`（不经桌面壳）时这些工具不可用，调用会提示"桌面桥不可用"，不影响其他功能。
 
+## 护眼模式（内置主题）
+
+内置深绿护眼主题（低蓝光、低对比），**默认开启**，不依赖任何第三方皮肤插件。样式在 `electron/eye-care.css`，由 preload 注入页面（作用域 `html[data-dsh-eye-care="1"]`）。
+
+| 项 | 说明 |
+|---|---|
+| `window.dshDesktop.eyeCare.isActive()` | 查询是否开启 |
+| `window.dshDesktop.eyeCare.setActive(true/false)` | 开/关（即时生效，持久化在 localStorage） |
+| 关闭后恢复 | 应用自带默认主题（浅/深跟随系统） |
+
+> 背景为深绿纯色 + 柔和径向光晕，**无扫描线/无动画**；设计令牌（`--dsw-alias-*`/`--aion-*`）在 body 级覆盖，浅/深色系统下均生效。
+
 ## 日志
 
 - Windows：`%APPDATA%\DeepSeek Harness\dsh.log`
@@ -100,7 +112,8 @@ npm run dist
 ```
 ├── electron/
 │   ├── main.js               # Electron 主进程：进程管理、窗口、托盘、IPC、生命周期
-│   ├── preload.js            # 桌面桥：contextBridge 暴露 window.dshDesktop
+│   ├── preload.js            # 桌面桥：contextBridge 暴露 window.dshDesktop + 护眼模式注入
+│   ├── eye-care.css          # 内置护眼模式样式（深绿主题，默认开启）
 │   ├── desktop-api.js        # 本地 API 服务（agent 工具后端，token 鉴权）
 │   ├── desktop-plugin/       # dsh 桌面插件：注册 desktop.* agent 工具（--patch 注入）
 │   └── splash.html           # 启动画面

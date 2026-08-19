@@ -51,4 +51,43 @@ contextBridge.exposeInMainWorld("dshDesktop", {
 
   /** 请求退出应用（会走退出确认） */
   quit: () => invoke("desktop:quit"),
+
+  /** 护眼模式：内置深绿护眼主题（默认开启），样式见 electron/eye-care.css */
+  eyeCare: {
+    isActive: () => localStorage.getItem(EYE_CARE_KEY) !== "0",
+    setActive: (flag) => {
+      localStorage.setItem(EYE_CARE_KEY, flag ? "1" : "0");
+      document.documentElement.setAttribute("data-dsh-eye-care", flag ? "1" : "0");
+      return flag;
+    },
+  },
 });
+
+// ── 护眼模式：从主进程取样式表注入页面（作用域 html[data-dsh-eye-care]）────
+
+const EYE_CARE_KEY = "dsh.eyeCare";
+
+async function applyEyeCare() {
+  try {
+    const css = await invoke("desktop:eye-care:css");
+    if (!css) return;
+    let style = document.getElementById("dsh-eye-care-style");
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "dsh-eye-care-style";
+      document.head.appendChild(style);
+    }
+    style.textContent = css;
+    // 默认开启（localStorage 未设置时视为开启）
+    const active = localStorage.getItem(EYE_CARE_KEY) !== "0";
+    document.documentElement.setAttribute("data-dsh-eye-care", active ? "1" : "0");
+  } catch {
+    /* 桥不可用时静默降级（如直接浏览器访问） */
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", applyEyeCare);
+} else {
+  void applyEyeCare();
+}

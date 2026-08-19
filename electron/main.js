@@ -321,6 +321,15 @@ function registerDesktopIpc() {
       void requestQuit();
       return true;
     },
+
+    "desktop:eye-care:css": () => {
+      // 返回内置护眼模式样式表（preload 注入页面）
+      try {
+        return fs.readFileSync(path.join(__dirname, "eye-care.css"), "utf8");
+      } catch {
+        return "";
+      }
+    },
   };
 
   for (const [channel, handler] of Object.entries(handlers)) {
