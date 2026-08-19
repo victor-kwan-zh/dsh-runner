@@ -14,6 +14,7 @@
 - 托盘常驻：关窗最小化到托盘，后台继续运行；退出前弹窗确认，防止误杀后台任务
 - 后台不节流：`backgroundThrottling: false`，窗口隐藏时 agent 流式输出与长任务依然稳定
 - 桌面桥：页面可调用 `window.dshDesktop.*`（原生通知 / 文件选择 / 剪贴板 / 窗口控制等，见下文）
+- Agent 桌面工具：dsh 的 agent 获得 `desktop.*` 工具集（系统通知、选文件夹、截屏等，见下文）
 - Windows 打包：NSIS 安装包 + portable 绿色版（`npm run dist`）
 
 ## 环境要求
@@ -64,6 +65,21 @@ npm run dist
 
 实现：`electron/preload.js`（`contextBridge` 暴露）+ `electron/main.js`（`ipcMain.handle` 白名单通道）。
 
+## Agent 桌面工具（desktop.*）
+
+桌面壳启动 dsh 时通过 `--patch` 注入桌面插件（`electron/desktop-plugin/`），把 Electron 主进程的桌面能力注册为 **agent 工具**——agent 自己也能用桌面功能（纯 Web 版做不到）。工具经本地桌面 API 服务（`electron/desktop-api.js`，仅 127.0.0.1 + token 鉴权）调用：
+
+| 工具 | 说明 |
+|---|---|
+| `desktop_notify` | 弹系统通知（任务完成提醒） |
+| `desktop_pick_folder` / `desktop_pick_file` / `desktop_save_file` | 原生对话框，返回用户选择的真实路径 |
+| `desktop_clipboard_read` / `desktop_clipboard_write` | 剪贴板读写 |
+| `desktop_window_show` / `hide` / `always_on_top` | 窗口控制（从托盘唤出 / 钉置顶） |
+| `desktop_progress` | 任务栏进度（0~1，-1 清除） |
+| `desktop_screenshot` | 截屏保存为 PNG 并返回路径（配合多模态模型让 agent"看"屏幕） |
+
+手动直接运行 `dsh web`（不经桌面壳）时这些工具不可用，调用会提示"桌面桥不可用"，不影响其他功能。
+
 ## 日志
 
 - Windows：`%APPDATA%\DeepSeek Harness\dsh.log`
@@ -73,9 +89,11 @@ npm run dist
 
 ```
 ├── electron/
-│   ├── main.js         # Electron 主进程：进程管理、窗口、托盘、IPC、生命周期
-│   ├── preload.js      # 桌面桥：contextBridge 暴露 window.dshDesktop
-│   └── splash.html     # 启动画面
+│   ├── main.js               # Electron 主进程：进程管理、窗口、托盘、IPC、生命周期
+│   ├── preload.js            # 桌面桥：contextBridge 暴露 window.dshDesktop
+│   ├── desktop-api.js        # 本地 API 服务（agent 工具后端，token 鉴权）
+│   ├── desktop-plugin/       # dsh 桌面插件：注册 desktop.* agent 工具（--patch 注入）
+│   └── splash.html           # 启动画面
 ├── assets/             # 应用图标（icon.ico 由 scripts/png-to-ico.js 从 icon-256.png 生成）
 ├── scripts/
 │   └── png-to-ico.js   # PNG → ICO 生成脚本

@@ -64,7 +64,7 @@
 |---|---|---|---|---|
 | **M1 壳层加固** | ELECTRON_RUN_AS_NODE + 托盘常驻 + 退出保护 + backgroundThrottling + 原生菜单 | 无 | 小 | ✅ 已实现（2026-08） |
 | **M2 桥层** | preload + IPC：notify / pickFolder / pickFile / getPathForFile / showWindow / quit | M1 | 小 | ✅ 已实现（2026-08），`window.dshDesktop` 见 README |
-| **M3 agent 工具** | desktop-plugin + `--patch` 注入，注册 desktop.* 工具集 | M2（工具内部复用桥） | 中 | ⏳ 待做 |
+| **M3 agent 工具** | desktop-plugin + `--patch` 注入，注册 desktop.* 工具集 | M2（工具内部复用桥） | 中 | ✅ 已实现（2026-08）：11 个工具（notify/选文件选夹/保存/剪贴板/窗口/进度/截屏），经本地 API 服务 + token 鉴权 |
 | **M4 产品形态** | 多窗口 / 工作区切换 / 深链 / 自启 / 自动更新 | M1 | 中 | ⏳ 待做 |
 | **M5 架构演进** | 探索 in-process hosting（main 进程直接 import dsh boot，省掉子进程与端口）；dsh 打进 asar 做单文件分发 | M1 | 大（实验性） | ⏳ 待做 |
 
@@ -81,6 +81,10 @@
 5. `backgroundThrottling: false` ✅
 
 下一站：**M3 agent 工具**——把桌面能力注册成 `desktop.*` 工具集（`ctx.tools.register` + `--patch` 注入），让 agent 自己也能用托盘/通知/文件选择/截图。
+
+> ✅ **M3 已于 2026-08 落地**：`electron/desktop-plugin/`（Cordis 插件，注册 11 个 `desktop.*` 工具）+ `electron/desktop-api.js`（主进程本地 HTTP 服务，仅 127.0.0.1 + token 鉴权）+ main.js 启动时 `--patch` 注入。实测：插件注册、鉴权（无 token 401）、剪贴板往返、屏幕截图全部通过。
+>
+> **实现要点（踩坑记录）**：`--patch` 必须排在 `--host/--port` 之前（launcher 的 web 子命令 `enablePositionalOptions`，web 应用自身的解析器不认识 `--patch`）；插件名须用 `file://` URL（profile boot 的 Include 不做 Windows 路径转换）；插入行需显式 `config: {}`（插件导出 Config schema 时，无 config 会校验失败）。
 
 完成后桌面版即可对外宣称：托盘常驻、后台不节流、原生通知与文件选择、无系统 Node 依赖——并以此为基座继续 M3/M4。
 

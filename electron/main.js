@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const http = require("node:http");
 const net = require("node:net");
 const path = require("node:path");
+const { startDesktopApi } = require("./desktop-api");
 
 const execFileAsync = promisify(execFile);
 
@@ -29,6 +30,8 @@ let mainWindow = null;
 let tray = null;
 /** @type {import("node:child_process").ChildProcess | null} */
 let dshProcess = null;
+/** 桌面 API 服务（agent 工具的后端），随应用启动/退出 */
+let desktopApi = null;
 let shuttingDown = false;
 /** 用户确认过退出（或系统在退出中）：此时关窗不再拦为托盘 */
 let quitting = false;
@@ -52,6 +55,11 @@ function spawnEnv() {
   // 用 Electron 自带的 Node 跑 dsh，打包后不再依赖系统 Node。
   // 若 DSH_NODE 指向普通 node，该变量会被忽略，无害。
   env.ELECTRON_RUN_AS_NODE = "1";
+  // 桌面桥（agent 工具）后端地址与鉴权 token
+  if (desktopApi) {
+    env.DSH_DESKTOP_URL = desktopApi.url;
+    env.DSH_DESKTOP_TOKEN = desktopApi.token;
+  }
   return env;
 }
 
@@ -352,16 +360,39 @@ async function startDsh() {
   const dshBin = resolveDshBin();
   const cwd = workspaceDir();
 
-  setSplashStatus("正在启动 dsh web…");
-  appendLog(`\n[${new Date().toISOString()}] ${nodeBin} ${dshBin} web --host ${HOST} --port ${PORT}\ncwd=${cwd}\n`);
+  // 生成注入桌面插件的 patch 层（file:// URL 引用本地插件，dsh 无需改动）
+  const patchArgs = [];
+  try {
+    const { pathToFileURL } = require("node:url");
+    const pluginUrl = pathToFileURL(path.join(__dirname, "desktop-plugin", "index.mjs")).href;
+    const patchFile = path.join(app.getPath("userData"), "desktop.patch.yml");
+    fs.writeFileSync(
+      patchFile,
+      `- insert:\n    - id: desktop-tools\n      name: '${pluginUrl}'\n      config: {}\n`,
+      "utf8",
+    );
+    patchArgs.push("--patch", patchFile);
+  } catch (error) {
+    appendLog(`\n[desktop-plugin] patch 写入失败：${error.message}\n`);
+  }
 
-  dshProcess = spawn(nodeBin, [dshBin, "web", "--host", HOST, "--port", String(PORT)], {
-    cwd,
-    env: spawnEnv(),
-    stdio: ["ignore", "pipe", "pipe"],
-    windowsHide: true,
-    detached: process.platform !== "win32",
-  });
+  setSplashStatus("正在启动 dsh web…");
+  appendLog(`\n[${new Date().toISOString()}] ${nodeBin} ${dshBin} web --host ${HOST} --port ${PORT} ${patchArgs.join(" ")}\ncwd=${cwd}\n`);
+
+  dshProcess = spawn(
+    nodeBin,
+    // --patch 必须排在 --host/--port 之前：launcher 的 web 子命令
+    // enablePositionalOptions，遇到位置参数后不再识别选项；而 web 应用
+    // 自身的解析器不认识 --patch，所以它必须在启动器层被消费。
+    [dshBin, "web", ...patchArgs, "--host", HOST, "--port", String(PORT)],
+    {
+      cwd,
+      env: spawnEnv(),
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+      detached: process.platform !== "win32",
+    },
+  );
 
   dshProcess.stdout?.on("data", (buf) => appendLog(buf.toString("utf8")));
   dshProcess.stderr?.on("data", (buf) => appendLog(buf.toString("utf8")));
@@ -480,6 +511,11 @@ async function boot() {
   createTray();
   await createWindow();
   try {
+    desktopApi = await startDesktopApi({
+      getWindow: () => mainWindow,
+      logger: appendLog,
+      screenshotsDir: path.join(app.getPath("userData"), "screenshots"),
+    });
     await startDsh();
     if (!mainWindow || mainWindow.isDestroyed()) return;
     setSplashStatus("正在打开界面…");
@@ -524,6 +560,12 @@ if (!gotLock) {
     shuttingDown = true;
     stopDsh()
       .catch((error) => appendLog(`\nstop failed: ${error instanceof Error ? error.stack : error}\n`))
-      .finally(() => app.exit(0));
+      .finally(async () => {
+        if (desktopApi) {
+          await desktopApi.close().catch(() => {});
+          desktopApi = null;
+        }
+        app.exit(0);
+      });
   });
 }
