@@ -90,7 +90,7 @@ npm run dist
 
 手动直接运行 `dsh web`（不经桌面壳）时这些工具不可用，调用会提示"桌面桥不可用"，不影响其他功能。
 
-## 开发工作流工具（P0 系列）
+## 开发工作流工具（P0 + P1）
 
 桌面壳随 patch 注入的开发工作流工具（作用于会话工作目录，需 git 仓库）：
 
@@ -100,8 +100,11 @@ npm run dist
 | **变更集**（`electron/changeset-tools/`） | `changeset_review` / `changeset_status` | 多文件 diff 审批：交互式多选保留/还原，可应用后提交 |
 | **语义索引**（`electron/semantic-index/`） | `semantic_build` / `semantic_search` | 本地 TF-IDF 向量索引（免外部 embedding API），按工作区持久化到 `~/.dsh/indexes/` |
 | **检查点**（`electron/checkpoint-tools/`） | `checkpoint_create` / `checkpoint_list` / `checkpoint_restore` / `checkpoint_drop` | 高风险操作前快照，一键回滚（分支历史不受影响） |
+| **项目记忆**（`electron/memory-tools/`） | `memory_read` / `memory_write` / `memory_path` | AGENTS.md/CLAUDE.md 读写（分区段管理）；**每轮模型上下文自动注入项目记忆** |
+| **审批策略**（`electron/permission-tools/`） | `permission_mode` | 会话级切换审批策略：ask（交互确认）/ never（严格拒绝） |
+| **测试闭环**（`electron/test-tools/`） | `test_run` | 探测并运行项目测试（npm/pytest/cargo/go），返回结果供 agent 修复重跑 |
 
-测试：`npm test`（node:test，覆盖上述全部核心逻辑）。
+测试：`npm test`（node:test，47 例，覆盖全部核心逻辑）。
 
 ## 护眼模式（内置主题）
 

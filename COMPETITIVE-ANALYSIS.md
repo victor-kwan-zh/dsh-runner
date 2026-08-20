@@ -55,11 +55,11 @@ DSH 不是"编辑器插件"，也不是"终端工具"，而是**独立的 Agent 
 4. **检查点/回滚**：`checkpoint_create`（git stash create 快照 + 未跟踪备份）/ `list` / `restore` / `drop`。✅
    - 全部配套 `node:test` 单测（`npm test`，32 例），测试抓出过 `--branch` 头部行污染变更列表的真实 bug。
 
-**P1（体验强化）**
-- AGENTS.md 记忆协议（读写 + 启动注入）
-- 自动审批细化（会话 YOLO、超时放行、危险操作确认）
-- @-mention 文件
-- 测试闭环工具 + 成本仪表盘内置 + onboarding 引导
+**P1（体验强化）—— ✅ 已实现（2026-08）**
+- AGENTS.md 记忆协议：`memory_read/write/path` + 每轮模型上下文动态注入。✅
+- 自动审批细化：`permission_mode`（会话级 ask/never 切换；注：dsh 审批策略刻意 fail-closed，无 YOLO 自动放行）。✅
+- 测试闭环工具：`test_run`（探测 npm/pytest/cargo/go 并运行，超时杀进程树）。✅
+- 待做：@-mention 文件、成本仪表盘内置、onboarding 引导。
 
 **P2（扩展形态）**
 - 浏览器 agent、云端沙箱、语音、团队协作、VS Code 集成、本地模型
