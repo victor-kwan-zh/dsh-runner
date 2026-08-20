@@ -2,6 +2,8 @@
 
 用 Electron 将 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）的本地 Web 界面封装为桌面应用：应用启动时自动拉起 `dsh web` 服务（默认 `http://127.0.0.1:3080`），并在原生窗口内渲染。项目同时承载桌面能力扩展（托盘、通知、原生对话框等）的演进路线。
 
+> 📘 **完整产品功能清单与变更记录见 [FEATURES.md](./FEATURES.md)**（每次新增功能都会同步更新）。
+
 ## 特性
 
 - 一键启动：自动拉起 `dsh web`，等待就绪后加载界面，无需手动开浏览器
