@@ -5,6 +5,7 @@ import { defineTool } from "@deepseek-ai/dsh-tools";
 import { z } from "zod";
 import path from "node:path";
 import * as git from "./git-core.mjs";
+import * as pr from "./git-pr-core.mjs";
 
 const name = "tool-git";
 const inject = ["tools"];
@@ -140,6 +141,45 @@ function apply(ctx) {
         workdir: { type: "string", description: "工作目录" },
       },
       action: async (args, exec) => git.gitStash(resolveCwd(exec, args.workdir), args),
+    }),
+
+    tool({
+      name: "git_remote",
+      description: "查看远程仓库信息（remote -v 解析结果）。",
+      parameters: {
+        workdir: { type: "string", description: "工作目录" },
+      },
+      action: async (args, exec) => {
+        const remotes = await git.gitRemotes(resolveCwd(exec, args.workdir));
+        return { ok: true, remotes };
+      },
+    }),
+
+    tool({
+      name: "git_pr_create",
+      description:
+        "创建 GitHub Pull Request（REST API，无需 gh CLI）。会先推送当前分支，然后调用" +
+        "GitHub API 建 PR。需要 GITHUB_TOKEN 环境变量。返回 PR 编号与链接。",
+      parameters: {
+        title: { type: "string", required: true, description: "PR 标题" },
+        body: { type: "string", description: "PR 描述" },
+        base: { type: "string", description: "目标分支（默认 main）" },
+        head: { type: "string", description: "源分支（默认当前分支）" },
+        remote: { type: "string", description: "远程名（默认 origin）" },
+        workdir: { type: "string", description: "工作目录" },
+      },
+      action: async (args, exec) => {
+        const cwd = resolveCwd(exec, args.workdir);
+        const result = await pr.createPullFromRepo(cwd, {
+          title: args.title,
+          body: args.body,
+          base: args.base,
+          head: args.head,
+          remote: args.remote,
+          token: process.env.GITHUB_TOKEN || process.env.GH_TOKEN,
+        });
+        return { ok: true, ...result };
+      },
     }),
   ];
 

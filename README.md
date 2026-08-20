@@ -96,7 +96,7 @@ npm run dist
 
 | 工具族 | 工具 | 说明 |
 |---|---|---|
-| **Git**（`electron/git-tools/`） | `git_status` / `git_diff` / `git_log` / `git_commit` / `git_push` / `git_pull` / `git_branch` / `git_stash` | 完整 git 工作流，数组传参无 shell 注入 |
+| **Git**（`electron/git-tools/`） | `git_status` / `git_diff` / `git_log` / `git_commit` / `git_push` / `git_pull` / `git_branch` / `git_stash` / `git_remote` / `git_pr_create` | 完整 git 工作流（含 GitHub PR 创建，REST API 免 gh CLI，需 `GITHUB_TOKEN`），数组传参无 shell 注入 |
 | **变更集**（`electron/changeset-tools/`） | `changeset_review` / `changeset_status` | 多文件 diff 审批：交互式多选保留/还原，可应用后提交 |
 | **语义索引**（`electron/semantic-index/`） | `semantic_build` / `semantic_search` | 本地 TF-IDF 向量索引（免外部 embedding API），按工作区持久化到 `~/.dsh/indexes/` |
 | **检查点**（`electron/checkpoint-tools/`） | `checkpoint_create` / `checkpoint_list` / `checkpoint_restore` / `checkpoint_drop` | 高风险操作前快照，一键回滚（分支历史不受影响） |
@@ -105,7 +105,9 @@ npm run dist
 | **测试闭环**（`electron/test-tools/`） | `test_run` | 探测并运行项目测试（npm/pytest/cargo/go），返回结果供 agent 修复重跑 |
 | **用量报告**（`electron/usage-tools/`） | `usage_report` | 聚合 cost-tracker 数据：总费用/Token（输入/输出/缓存/推理），按模型/天/会话 |
 
-测试：`npm test`（node:test，55 例，覆盖全部核心逻辑）。
+测试：`npm test`（node:test，61 例，覆盖全部核心逻辑）。
+
+> 全局快捷键：`Ctrl+Shift+D` 唤出主窗口（`DSH_SUMMON_SHORTCUT` 可覆盖）。
 
 ## 护眼模式（内置主题）
 

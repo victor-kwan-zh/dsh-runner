@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, Tray, Notification, clipboard, dialog, ipcMain, nativeImage, shell } = require("electron");
+const { app, BrowserWindow, Menu, Tray, Notification, clipboard, dialog, ipcMain, nativeImage, globalShortcut, shell } = require("electron");
 const { spawn, execFile } = require("node:child_process");
 const { promisify } = require("node:util");
 const fs = require("node:fs");
@@ -553,9 +553,22 @@ function createWindow() {
 
 // ── 启动 ───────────────────────────────────────────────────────────────────
 
+/** 全局快捷键：唤出主窗口（默认 Ctrl+Shift+D，DSH_SUMMON_SHORTCUT 可覆盖）。 */
+function registerGlobalShortcuts() {
+  const shortcut = process.env.DSH_SUMMON_SHORTCUT || "CommandOrControl+Shift+D";
+  try {
+    const ok = globalShortcut.register(shortcut, showMainWindow);
+    if (ok) appendLog(`\n[global-shortcut] 已注册唤出快捷键 ${shortcut}\n`);
+    else appendLog(`\n[global-shortcut] 快捷键 ${shortcut} 注册失败（可能被占用）\n`);
+  } catch (error) {
+    appendLog(`\n[global-shortcut] 注册失败：${error.message}\n`);
+  }
+}
+
 async function boot() {
   registerDesktopIpc();
   createTray();
+  registerGlobalShortcuts();
   await createWindow();
   try {
     desktopApi = await startDesktopApi({
@@ -605,6 +618,7 @@ if (!gotLock) {
     event.preventDefault();
     quitting = true;
     shuttingDown = true;
+    globalShortcut.unregisterAll();
     stopDsh()
       .catch((error) => appendLog(`\nstop failed: ${error instanceof Error ? error.stack : error}\n`))
       .finally(async () => {
