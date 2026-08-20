@@ -378,6 +378,9 @@ async function startDsh() {
     const changesetPluginUrl = pathToFileURL(path.join(__dirname, "changeset-tools", "index.mjs")).href;
     const semanticIndexUrl = pathToFileURL(path.join(__dirname, "semantic-index", "index.mjs")).href;
     const checkpointUrl = pathToFileURL(path.join(__dirname, "checkpoint-tools", "index.mjs")).href;
+    const memoryUrl = pathToFileURL(path.join(__dirname, "memory-tools", "index.mjs")).href;
+    const permissionUrl = pathToFileURL(path.join(__dirname, "permission-tools", "index.mjs")).href;
+    const testUrl = pathToFileURL(path.join(__dirname, "test-tools", "index.mjs")).href;
     const patchFile = path.join(app.getPath("userData"), "desktop.patch.yml");
     fs.writeFileSync(
       patchFile,
@@ -397,6 +400,15 @@ async function startDsh() {
         `      config: {}`,
         `    - id: checkpoint-tools`,
         `      name: '${checkpointUrl}'`,
+        `      config: {}`,
+        `    - id: memory-tools`,
+        `      name: '${memoryUrl}'`,
+        `      config: {}`,
+        `    - id: permission-tools`,
+        `      name: '${permissionUrl}'`,
+        `      config: {}`,
+        `    - id: test-tools`,
+        `      name: '${testUrl}'`,
         `      config: {}`,
         "",
       ].join("\n"),
