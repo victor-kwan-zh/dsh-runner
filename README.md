@@ -103,8 +103,9 @@ npm run dist
 | **项目记忆**（`electron/memory-tools/`） | `memory_read` / `memory_write` / `memory_path` | AGENTS.md/CLAUDE.md 读写（分区段管理）；**每轮模型上下文自动注入项目记忆** |
 | **审批策略**（`electron/permission-tools/`） | `permission_mode` | 会话级切换审批策略：ask（交互确认）/ never（严格拒绝） |
 | **测试闭环**（`electron/test-tools/`） | `test_run` | 探测并运行项目测试（npm/pytest/cargo/go），返回结果供 agent 修复重跑 |
+| **用量报告**（`electron/usage-tools/`） | `usage_report` | 聚合 cost-tracker 数据：总费用/Token（输入/输出/缓存/推理），按模型/天/会话 |
 
-测试：`npm test`（node:test，47 例，覆盖全部核心逻辑）。
+测试：`npm test`（node:test，55 例，覆盖全部核心逻辑）。
 
 ## 护眼模式（内置主题）
 
