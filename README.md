@@ -111,11 +111,29 @@ npm run dist
 
 > 全局快捷键：`Ctrl+Shift+D` 唤出主窗口（`DSH_SUMMON_SHORTCUT` 可覆盖）。
 >
-> 设置分区：`dsh-runner` 命名空间（设置 → 通用/插件配置可见），含 `usageAlertThreshold` 每日费用告警阈值。
+> 设置分区：`dsh-runner` 命名空间（设置 → 通用/插件配置可见），含 `usageAlertThreshold` 每日费用告警阈值、
+> `vision.*` 视觉分析配置（provider/model/baseUrl/apiKey）。
 >
 > 客户端插件机制：仓库内 `electron/plugins/<name>/`（含 `package.json` 的 `dsh.client` 声明）会在启动时
 > 物化到 `$DSH_HOME/profiles/web/node_modules/@dsh-runner/<name>/`，patch 按包名引用——客户端 bundle
 > 契约见 `electron/plugins/meta/`（`window.__ModuleLoader__.load({id, factory})`，factory 返回导出）。
+
+## 视觉分析（vision_analyze）
+
+DeepSeek 主模型无视觉输入；`vision_analyze` 工具把本地图片交给视觉模型分析（配合 `desktop_screenshot` 可做
+"截屏 → 分析 UI → 修复 → 复验"的前端工作流）。内置 5 个 provider（均 OpenAI 兼容接口），Key 可在
+设置 → dsh-runner 配置，或设置环境变量：
+
+| provider | 模型（默认） | baseURL | API Key 环境变量 |
+|---|---|---|---|
+| `qwen`（通义千问，推荐） | `qwen-vl-max` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `DASHSCOPE_API_KEY` |
+| `doubao`（豆包） | `doubao-seed-1-6-vision-pro` | `https://ark.cn-beijing.volces.com/api/v3` | `ARK_API_KEY` |
+| `glm`（智谱） | `glm-4v-plus` | `https://open.bigmodel.cn/api/paas/v4` | `ZHIPU_API_KEY` |
+| `openai` | `gpt-4o-mini` | `https://api.openai.com/v1` | `OPENAI_API_KEY` |
+| `gemini`（Google） | `gemini-2.5-flash` | `https://generativelanguage.googleapis.com/v1beta/openai` | `GEMINI_API_KEY` |
+
+也可在设置里自定义 `baseUrl`/`model`（任意 OpenAI 兼容端点）。国内直连推荐 `qwen`/`doubao`；有代理追求质量用 `gemini`/`openai`。
+配套 skills：`vision-ui-review`（前端审查流程）、`vision-ocr`（图片文字提取）。
 
 ## 护眼模式（内置主题）
 

@@ -92,10 +92,10 @@ provider 可选 qwen/doubao/glm/openai/gemini，OpenAI 兼容接口；配合 `de
 | dsh-runner | `usageAlertThreshold`（默认 ¥10） | 每日费用告警阈值，`usage_report` 据此告警 |
 | dsh-runner | `vision.*`（provider/model/baseUrl/apiKey） | 视觉分析配置（`vision_analyze` 工具），provider 默认 qwen |
 
-### 2.6 编程 Skills（11 个，内置）
+### 2.6 编程 Skills（13 个，内置）
 
 随应用启动物化到 `~/.agents/skills/`（与 lark-\* 同根，dsh 自动扫描并注入 agent 上下文），
-针对本环境工具（git_*/test_run/semantic_search/changeset/checkpoint/memory）定制：
+针对本环境工具（git_*/test_run/semantic_search/changeset/checkpoint/memory/vision_analyze）定制：
 
 | Skill | 用途 |
 |---|---|
@@ -110,6 +110,8 @@ provider 可选 qwen/doubao/glm/openai/gemini，OpenAI 兼容接口；配合 `de
 | `dependency-management` | 安全添加/升级/审计依赖 |
 | `api-design` | REST/OpenAPI 接口设计 |
 | `performance` | 先测量后优化的性能分析 |
+| `vision-ui-review` | 前端界面审查：截屏→视觉分析→定位代码→修复→复验 |
+| `vision-ocr` | 图片文字提取（代码/报错/表格/文档截图） |
 
 源码在仓库 `skills/`；新增 skill 需同时更新本清单与变更记录。
 
@@ -158,7 +160,8 @@ client-modules 识别并服务其客户端 bundle。
 
 | 日期 | 版本/提交 | 变更 |
 |---|---|---|
-| 2026-08 | （待提交） | 视觉分析工具 `vision_analyze`（补 DeepSeek 无视觉短板，多 provider）+ 设置分区 vision 配置 |
+| 2026-08 | （待提交） | 视觉 skills：vision-ui-review（前端审查流程）+ vision-ocr（图片文字提取） |
+| 2026-08 | `acd1a89` | 视觉分析工具 `vision_analyze`（补 DeepSeek 无视觉短板，多 provider）+ 设置分区 vision 配置 |
 | 2026-08 | `b8617bc` | 内置 11 个编程 Skills + 物化机制 |
 | 2026-08 | `c14822a` | 设置分区（dsh-runner）+ 用量阈值告警 + 客户端插件物化机制（@dsh-runner/meta POC） |
 | 2026-08 | `00e1304` | git_pr_create（GitHub PR）/ git_remote + 全局唤出快捷键 |
