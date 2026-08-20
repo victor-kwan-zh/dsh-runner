@@ -377,6 +377,7 @@ async function startDsh() {
     const gitPluginUrl = pathToFileURL(path.join(__dirname, "git-tools", "index.mjs")).href;
     const changesetPluginUrl = pathToFileURL(path.join(__dirname, "changeset-tools", "index.mjs")).href;
     const semanticIndexUrl = pathToFileURL(path.join(__dirname, "semantic-index", "index.mjs")).href;
+    const checkpointUrl = pathToFileURL(path.join(__dirname, "checkpoint-tools", "index.mjs")).href;
     const patchFile = path.join(app.getPath("userData"), "desktop.patch.yml");
     fs.writeFileSync(
       patchFile,
@@ -393,6 +394,9 @@ async function startDsh() {
         `      config: {}`,
         `    - id: semantic-index`,
         `      name: '${semanticIndexUrl}'`,
+        `      config: {}`,
+        `    - id: checkpoint-tools`,
+        `      name: '${checkpointUrl}'`,
         `      config: {}`,
         "",
       ].join("\n"),
