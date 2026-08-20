@@ -381,6 +381,7 @@ async function startDsh() {
     const memoryUrl = pathToFileURL(path.join(__dirname, "memory-tools", "index.mjs")).href;
     const permissionUrl = pathToFileURL(path.join(__dirname, "permission-tools", "index.mjs")).href;
     const testUrl = pathToFileURL(path.join(__dirname, "test-tools", "index.mjs")).href;
+    const usageUrl = pathToFileURL(path.join(__dirname, "usage-tools", "index.mjs")).href;
     const patchFile = path.join(app.getPath("userData"), "desktop.patch.yml");
     fs.writeFileSync(
       patchFile,
@@ -409,6 +410,9 @@ async function startDsh() {
         `      config: {}`,
         `    - id: test-tools`,
         `      name: '${testUrl}'`,
+        `      config: {}`,
+        `    - id: usage-tools`,
+        `      name: '${usageUrl}'`,
         `      config: {}`,
         "",
       ].join("\n"),
