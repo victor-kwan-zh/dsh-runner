@@ -133,3 +133,16 @@ export function formatReport(summary, { currency = "¥", title = null } = {}) {
   }
   return lines.join("\n");
 }
+
+/**
+ * 阈值检查：今天的总费用是否超过阈值。
+ * @param {object} summary aggregate 结果（scope=today）
+ * @param {number} threshold 阈值（¥）
+ * @returns {{threshold: number, exceeded: boolean, totalCost: number}}
+ */
+export function checkThreshold(summary, threshold) {
+  const t = Number.isFinite(threshold) && threshold > 0 ? threshold : null;
+  const totalCost = summary?.totalCost ?? 0;
+  if (t === null) return { threshold: null, exceeded: false, totalCost };
+  return { threshold: t, exceeded: totalCost > t, totalCost };
+}

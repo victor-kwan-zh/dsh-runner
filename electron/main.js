@@ -382,6 +382,18 @@ async function startDsh() {
     const permissionUrl = pathToFileURL(path.join(__dirname, "permission-tools", "index.mjs")).href;
     const testUrl = pathToFileURL(path.join(__dirname, "test-tools", "index.mjs")).href;
     const usageUrl = pathToFileURL(path.join(__dirname, "usage-tools", "index.mjs")).href;
+    const settingsUrl = pathToFileURL(path.join(__dirname, "settings-dsh-runner", "index.mjs")).href;
+    // 物化本地客户端插件包到 profile（@dsh-runner/<name>），patch 按包名引用
+    const { resolveDshHome, materializeClientPlugin, listLocalClientPlugins } = require("./plugins/materialize.cjs");
+    const dshHome = resolveDshHome();
+    const pluginsDir = path.join(__dirname, "plugins");
+    for (const pkg of listLocalClientPlugins(pluginsDir)) {
+      try {
+        materializeClientPlugin(dshHome, path.join(pluginsDir, pkg), pkg);
+      } catch (error) {
+        appendLog(`\n[client-plugins] 物化 ${pkg} 失败：${error.message}\n`);
+      }
+    }
     const patchFile = path.join(app.getPath("userData"), "desktop.patch.yml");
     fs.writeFileSync(
       patchFile,
@@ -413,6 +425,13 @@ async function startDsh() {
         `      config: {}`,
         `    - id: usage-tools`,
         `      name: '${usageUrl}'`,
+        `      config: {}`,
+        `    - id: settings-dsh-runner`,
+        `      name: '${settingsUrl}'`,
+        `      config: {}`,
+        // 客户端插件按包名引用（已物化到 profile node_modules）
+        `    - id: dsh-runner-meta`,
+        `      name: '@dsh-runner/meta'`,
         `      config: {}`,
         "",
       ].join("\n"),

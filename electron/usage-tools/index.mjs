@@ -33,10 +33,18 @@ function apply(ctx) {
       const summary = core.aggregate(entries, { scope, sessionId });
       const currency = pricing?.currency ?? "¥";
       const title = scope === "session" && sessionId ? titles?.[sessionId] : undefined;
+      // 从 dsh-runner 设置分区读取每日告警阈值（可选服务，未加载时用默认）
+      const threshold = ctx.get("dshRunnerConfig")?.get()?.usageAlertThreshold;
+      const alert = scope === "today" ? core.checkThreshold(summary, threshold) : undefined;
+      let text = core.formatReport(summary, { currency, title });
+      if (alert?.exceeded) {
+        text += `\n⚠️ 今日费用 ¥${alert.totalCost.toFixed(4)} 已超过告警阈值 ¥${alert.threshold}（可在 设置 → dsh-runner 调整）`;
+      }
       return {
         ok: true,
         summary,
-        text: core.formatReport(summary, { currency, title }),
+        alert,
+        text,
         dataFile: core.costTrackerFile(dshHome),
       };
     },
