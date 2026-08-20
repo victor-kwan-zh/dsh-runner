@@ -369,15 +369,25 @@ async function startDsh() {
   const dshBin = resolveDshBin();
   const cwd = workspaceDir();
 
-  // 生成注入桌面插件的 patch 层（file:// URL 引用本地插件，dsh 无需改动）
+  // 生成注入插件的 patch 层（file:// URL 引用本地插件，dsh 无需改动）
   const patchArgs = [];
   try {
     const { pathToFileURL } = require("node:url");
     const pluginUrl = pathToFileURL(path.join(__dirname, "desktop-plugin", "index.mjs")).href;
+    const gitPluginUrl = pathToFileURL(path.join(__dirname, "git-tools", "index.mjs")).href;
     const patchFile = path.join(app.getPath("userData"), "desktop.patch.yml");
     fs.writeFileSync(
       patchFile,
-      `- insert:\n    - id: desktop-tools\n      name: '${pluginUrl}'\n      config: {}\n`,
+      [
+        "- insert:",
+        `    - id: desktop-tools`,
+        `      name: '${pluginUrl}'`,
+        `      config: {}`,
+        `    - id: git-tools`,
+        `      name: '${gitPluginUrl}'`,
+        `      config: {}`,
+        "",
+      ].join("\n"),
       "utf8",
     );
     patchArgs.push("--patch", patchFile);
