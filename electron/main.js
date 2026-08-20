@@ -384,7 +384,7 @@ async function startDsh() {
     const usageUrl = pathToFileURL(path.join(__dirname, "usage-tools", "index.mjs")).href;
     const settingsUrl = pathToFileURL(path.join(__dirname, "settings-dsh-runner", "index.mjs")).href;
     // 物化本地客户端插件包到 profile（@dsh-runner/<name>），patch 按包名引用
-    const { resolveDshHome, materializeClientPlugin, listLocalClientPlugins } = require("./plugins/materialize.cjs");
+    const { resolveDshHome, materializeClientPlugin, materializeSkills, listLocalClientPlugins } = require("./plugins/materialize.cjs");
     const dshHome = resolveDshHome();
     const pluginsDir = path.join(__dirname, "plugins");
     for (const pkg of listLocalClientPlugins(pluginsDir)) {
@@ -393,6 +393,16 @@ async function startDsh() {
       } catch (error) {
         appendLog(`\n[client-plugins] 物化 ${pkg} 失败：${error.message}\n`);
       }
+    }
+    // 物化内置编程 skills 到 agentsHome（~/.agents/skills，与 lark-* 同根，
+    // 被 dsh skill-filesystem watcher 扫描并注入 agent 上下文）
+    try {
+      const os = require("node:os");
+      const agentsHome = process.env.DSH_AGENTS_HOME || path.join(os.homedir(), ".agents");
+      const skillCount = materializeSkills(agentsHome, path.join(PROJECT_ROOT, "skills"));
+      appendLog(`\n[skills] 已物化 ${skillCount} 个内置 skill 到 ${path.join(agentsHome, "skills")}\n`);
+    } catch (error) {
+      appendLog(`\n[skills] 物化失败：${error.message}\n`);
     }
     const patchFile = path.join(app.getPath("userData"), "desktop.patch.yml");
     fs.writeFileSync(
@@ -433,6 +443,13 @@ async function startDsh() {
         `    - id: dsh-runner-meta`,
         `      name: '@dsh-runner/meta'`,
         `      config: {}`,
+        // 重新启用宿主 skill-filesystem（顶层 target 补丁，非 insert）：
+        // 注入仓库内置的编程 skills（bundled 层）
+        `- id: skill-filesystem`,
+        `  disabled: false`,
+        `  config:`,
+        `    includeDefaultRoots: true`,
+        `    bundledSkillDir: '${path.join(PROJECT_ROOT, "skills").replace(/\\/g, "/")}'`,
         "",
       ].join("\n"),
       "utf8",

@@ -87,7 +87,28 @@ DeepSeek Harness 桌面版 = **Electron 桌面壳 + dsh（Agent Harness）**。�
 |---|---|---|
 | dsh-runner | `usageAlertThreshold`（默认 ¥10） | 每日费用告警阈值，`usage_report` 据此告警 |
 
-### 2.6 构建 / 测试 / 安装
+### 2.6 编程 Skills（11 个，内置）
+
+随应用启动物化到 `~/.agents/skills/`（与 lark-\* 同根，dsh 自动扫描并注入 agent 上下文），
+针对本环境工具（git_*/test_run/semantic_search/changeset/checkpoint/memory）定制：
+
+| Skill | 用途 |
+|---|---|
+| `code-review` | 系统化代码审查（正确性/安全/风格/测试），输出结构化报告 |
+| `debugging` | 复现→定位→修复→验证的调试闭环 |
+| `tdd` | 红-绿-重构测试驱动开发 |
+| `refactoring` | 检查点保护下小步安全重构 |
+| `git-workflow` | 整理/审查/提交/推送/建 PR 规范流程 |
+| `commit-message` | Conventional Commits 提交信息 |
+| `security-audit` | 依赖与代码安全审计（注入/密钥/权限/供应链） |
+| `codebase-navigation` | 探索陌生代码库（semantic_search + 记忆沉淀） |
+| `dependency-management` | 安全添加/升级/审计依赖 |
+| `api-design` | REST/OpenAPI 接口设计 |
+| `performance` | 先测量后优化的性能分析 |
+
+源码在仓库 `skills/`；新增 skill 需同时更新本清单与变更记录。
+
+### 2.7 构建 / 测试 / 安装
 
 | 项 | 说明 |
 |---|---|
@@ -132,6 +153,7 @@ client-modules 识别并服务其客户端 bundle。
 
 | 日期 | 版本/提交 | 变更 |
 |---|---|---|
+| 2026-08 | （待提交） | 内置 11 个编程 Skills（物化到 ~/.agents/skills）+ 文档体系（FEATURES.md/AGENTS.md） |
 | 2026-08 | `c14822a` | 设置分区（dsh-runner）+ 用量阈值告警 + **客户端插件物化机制**（@dsh-runner/meta POC） |
 | 2026-08 | `00e1304` | git_pr_create（GitHub PR）/ git_remote + 全局唤出快捷键 |
 | 2026-08 | `c33ecfd` | usage_report 成本/用量报告 |

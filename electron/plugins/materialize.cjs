@@ -45,4 +45,24 @@ function listLocalClientPlugins(pluginsDir) {
   return names.sort();
 }
 
-module.exports = { resolveDshHome, clientPluginDest, materializeClientPlugin, listLocalClientPlugins };
+/**
+ * 把仓库 skills 同步到 agentsHome 的 skill 根（默认 ~/.agents/skills，
+ * 与 lark-* 等 skill 同目录，dsh 的 skill-filesystem watcher 会扫描并
+ * 注入 agent 上下文）。返回复制的 skill 数量。
+ * @param {string} agentsHome 如 ~/.agents（或 DSH_AGENTS_HOME）
+ * @param {string} srcSkillsDir 仓库 skills 目录（<root>/skills）
+ */
+function materializeSkills(agentsHome, srcSkillsDir) {
+  const dest = path.join(agentsHome, "skills");
+  fs.mkdirSync(dest, { recursive: true });
+  let count = 0;
+  if (!fs.existsSync(srcSkillsDir)) return 0;
+  for (const entry of fs.readdirSync(srcSkillsDir, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !fs.existsSync(path.join(srcSkillsDir, entry.name, "SKILL.md"))) continue;
+    fs.cpSync(path.join(srcSkillsDir, entry.name), path.join(dest, entry.name), { recursive: true, force: true });
+    count += 1;
+  }
+  return count;
+}
+
+module.exports = { resolveDshHome, clientPluginDest, materializeClientPlugin, listLocalClientPlugins, materializeSkills };

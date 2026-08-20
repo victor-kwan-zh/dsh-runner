@@ -65,6 +65,25 @@ test("listLocalClientPlugins 只列有 package.json 的目录", async () => {
   }
 });
 
+test("materializeSkills 复制到 agentsHome/skills 且只复制有 SKILL.md 的目录", async () => {
+  const { materializeSkills } = await import("../../electron/plugins/materialize.cjs");
+  const agents = fs.mkdtempSync(path.join(os.tmpdir(), "dsh-mat-agents-"));
+  const src = fs.mkdtempSync(path.join(os.tmpdir(), "dsh-mat-skills-"));
+  try {
+    fs.mkdirSync(path.join(src, "good"));
+    fs.writeFileSync(path.join(src, "good", "SKILL.md"), "---\nname: good\ndescription: d\n---\nbody\n");
+    fs.mkdirSync(path.join(src, "nobundle")); // 没有 SKILL.md，应跳过
+    fs.writeFileSync(path.join(src, "nobundle", "x.md"), "x");
+    const count = materializeSkills(agents, src);
+    assert.equal(count, 1);
+    assert.ok(fs.existsSync(path.join(agents, "skills", "good", "SKILL.md")));
+    assert.ok(!fs.existsSync(path.join(agents, "skills", "nobundle")));
+  } finally {
+    fs.rmSync(agents, { recursive: true, force: true });
+    fs.rmSync(src, { recursive: true, force: true });
+  }
+});
+
 test("checkThreshold 阈值判断", () => {
   assert.deepEqual(checkThreshold({ totalCost: 5 }, 10), { threshold: 10, exceeded: false, totalCost: 5 });
   assert.deepEqual(checkThreshold({ totalCost: 12 }, 10), { threshold: 10, exceeded: true, totalCost: 12 });

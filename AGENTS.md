@@ -19,6 +19,8 @@
 - **插件注入**：main.js 启动时生成 `desktop.patch.yml`（userData），`dsh web --patch` 注入；
   host 插件为 `electron/<xxx>-tools/index.mjs`（`ctx.tools.register`），客户端插件在
   `electron/plugins/<name>/`（物化到 profile，浏览器面走 `__ModuleLoader__.load`）。
+- **Skills**：仓库 `skills/<name>/SKILL.md`（Anthropic 格式：YAML frontmatter name/description），
+  启动时物化到 `~/.agents/skills/`，dsh 自动扫描注入 agent 上下文；新增 skill 同步更新 FEATURES.md。
 - **测试**：`npm test`（node:test，`scripts/test/*.test.mjs`）——每个工具核心都是纯函数模块
   （`*-core.mjs`），插件层只做注册；新增工具必须配核心单测。
 - **postinstall 补丁**：`scripts/patch-node-pty.cjs`（Spectre）、`scripts/patch-theme-eye-care.cjs`
@@ -33,6 +35,7 @@
 | 工具核心（纯函数） | `electron/*-tools/*-core.mjs` |
 | 工具注册（Cordis 插件） | `electron/*-tools/index.mjs` |
 | 客户端插件（浏览器面） | `electron/plugins/<name>/client.js` |
+| 内置编程 Skills | `skills/<name>/SKILL.md`（物化到 `~/.agents/skills/`） |
 | 测试 | `scripts/test/*.test.mjs` |
 | 运行日志 | `%APPDATA%\DeepSeek Harness\dsh.log` |
 | 用户数据 | `~/.dsh/`（profiles / indexes / checkpoints / cost-tracker.json） |
