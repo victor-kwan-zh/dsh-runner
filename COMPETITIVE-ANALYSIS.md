@@ -48,11 +48,12 @@ DSH 不是"编辑器插件"，也不是"终端工具"，而是**独立的 Agent 
 
 ## 3. 建议路线（按"用户预期 → 架构可行性"）
 
-**P0（先补"AI agent 软件"的基础预期，全部可在现有架构内做）**
-1. **Git 工作流工具集**：新增 `git_*` 工具（status/diff/commit/push/pr）+ 会话内变更集卡片（DiffBlock 已有基础）。做法：host 插件 `ctx.tools.register`（同 desktop-plugin 模式）。
-2. **变更集审查/应用**：client 插件渲染"变更集 → 接受/拒绝"（diff 审批），配合 permission 系统。做法：client 插件 + storage。
-3. **代码库语义索引**：`dsh-llm` 已有 embedding provider 可用；做一个索引服务（目录树 → 向量 → `semantic_search` 工具）+ 检索注入。做法：host 插件 + 本地向量（sqlite-vss / hnswlib 类）。
-4. **检查点/回滚**：会话动作前对工作区文件做快照（git stash 或文件副本），`checkpoint.revert` 工具。做法：host 插件，落地最快用 git。
+**P0（先补"AI agent 软件"的基础预期）—— ✅ 已实现（2026-08，见各 commit）**
+1. **Git 工作流工具集**：`git_*` 8 个工具（status/diff/log/commit/push/pull/branch/stash），host 插件 `ctx.tools.register`。✅
+2. **变更集审查/应用**：`changeset_review`（交互式多选审批保留/还原 + 可选提交）/ `changeset_status`。✅
+3. **代码库语义索引**：本地 TF-IDF 稀疏向量索引（免外部 embedding API、可离线），`semantic_build` / `semantic_search`。✅
+4. **检查点/回滚**：`checkpoint_create`（git stash create 快照 + 未跟踪备份）/ `list` / `restore` / `drop`。✅
+   - 全部配套 `node:test` 单测（`npm test`，32 例），测试抓出过 `--branch` 头部行污染变更列表的真实 bug。
 
 **P1（体验强化）**
 - AGENTS.md 记忆协议（读写 + 启动注入）

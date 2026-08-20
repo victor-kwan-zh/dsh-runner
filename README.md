@@ -90,6 +90,19 @@ npm run dist
 
 手动直接运行 `dsh web`（不经桌面壳）时这些工具不可用，调用会提示"桌面桥不可用"，不影响其他功能。
 
+## 开发工作流工具（P0 系列）
+
+桌面壳随 patch 注入的开发工作流工具（作用于会话工作目录，需 git 仓库）：
+
+| 工具族 | 工具 | 说明 |
+|---|---|---|
+| **Git**（`electron/git-tools/`） | `git_status` / `git_diff` / `git_log` / `git_commit` / `git_push` / `git_pull` / `git_branch` / `git_stash` | 完整 git 工作流，数组传参无 shell 注入 |
+| **变更集**（`electron/changeset-tools/`） | `changeset_review` / `changeset_status` | 多文件 diff 审批：交互式多选保留/还原，可应用后提交 |
+| **语义索引**（`electron/semantic-index/`） | `semantic_build` / `semantic_search` | 本地 TF-IDF 向量索引（免外部 embedding API），按工作区持久化到 `~/.dsh/indexes/` |
+| **检查点**（`electron/checkpoint-tools/`） | `checkpoint_create` / `checkpoint_list` / `checkpoint_restore` / `checkpoint_drop` | 高风险操作前快照，一键回滚（分支历史不受影响） |
+
+测试：`npm test`（node:test，覆盖上述全部核心逻辑）。
+
 ## 护眼模式（内置主题）
 
 内置深绿护眼主题（低蓝光、低对比），不依赖任何第三方皮肤插件。已集成到 **dsh 设置 → 外观**：主题选择器为 **浅色 / 深色 / 跟随系统 / 护眼** 四个选项，选择"护眼"即时生效并持久化（`~/.dsh/settings.yaml` 的 `ui-theme.preference: eye-care`）。
