@@ -72,6 +72,10 @@ DeepSeek Harness 桌面版 = **Electron 桌面壳 + dsh（Agent Harness）**。�
 
 **用量报告**（1）：`usage_report`（聚合 cost-tracker：费用/Token 按模型/天/会话；今日超阈值告警）
 
+**视觉分析**（1）：`vision_analyze`（**解决 DeepSeek 无视觉输入**：本地图片 → 视觉模型分析；
+provider 可选 qwen/doubao/glm/openai/gemini，OpenAI 兼容接口；配合 `desktop_screenshot`
+做"截屏 → 分析 UI 问题 → 修复"的前端工作流；Key 配置在 设置 → dsh-runner 或 `VISION_API_KEY`）
+
 **客户端插件**（1）：`@dsh-runner/meta`（POC，验证客户端插件链路，见 5）
 
 ### 2.4 主题与外观
@@ -86,6 +90,7 @@ DeepSeek Harness 桌面版 = **Electron 桌面壳 + dsh（Agent Harness）**。�
 | 分区 | 配置项 | 说明 |
 |---|---|---|
 | dsh-runner | `usageAlertThreshold`（默认 ¥10） | 每日费用告警阈值，`usage_report` 据此告警 |
+| dsh-runner | `vision.*`（provider/model/baseUrl/apiKey） | 视觉分析配置（`vision_analyze` 工具），provider 默认 qwen |
 
 ### 2.6 编程 Skills（11 个，内置）
 
@@ -153,8 +158,9 @@ client-modules 识别并服务其客户端 bundle。
 
 | 日期 | 版本/提交 | 变更 |
 |---|---|---|
-| 2026-08 | （待提交） | 内置 11 个编程 Skills（物化到 ~/.agents/skills）+ 文档体系（FEATURES.md/AGENTS.md） |
-| 2026-08 | `c14822a` | 设置分区（dsh-runner）+ 用量阈值告警 + **客户端插件物化机制**（@dsh-runner/meta POC） |
+| 2026-08 | （待提交） | 视觉分析工具 `vision_analyze`（补 DeepSeek 无视觉短板，多 provider）+ 设置分区 vision 配置 |
+| 2026-08 | `b8617bc` | 内置 11 个编程 Skills + 物化机制 |
+| 2026-08 | `c14822a` | 设置分区（dsh-runner）+ 用量阈值告警 + 客户端插件物化机制（@dsh-runner/meta POC） |
 | 2026-08 | `00e1304` | git_pr_create（GitHub PR）/ git_remote + 全局唤出快捷键 |
 | 2026-08 | `c33ecfd` | usage_report 成本/用量报告 |
 | 2026-08 | `46b2dda` | AGENTS.md 项目记忆（+动态注入）/ permission_mode / test_run |

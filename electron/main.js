@@ -383,6 +383,7 @@ async function startDsh() {
     const testUrl = pathToFileURL(path.join(__dirname, "test-tools", "index.mjs")).href;
     const usageUrl = pathToFileURL(path.join(__dirname, "usage-tools", "index.mjs")).href;
     const settingsUrl = pathToFileURL(path.join(__dirname, "settings-dsh-runner", "index.mjs")).href;
+    const visionUrl = pathToFileURL(path.join(__dirname, "vision-tools", "index.mjs")).href;
     // 物化本地客户端插件包到 profile（@dsh-runner/<name>），patch 按包名引用
     const { resolveDshHome, materializeClientPlugin, materializeSkills, listLocalClientPlugins } = require("./plugins/materialize.cjs");
     const dshHome = resolveDshHome();
@@ -438,6 +439,9 @@ async function startDsh() {
         `      config: {}`,
         `    - id: settings-dsh-runner`,
         `      name: '${settingsUrl}'`,
+        `      config: {}`,
+        `    - id: vision-tools`,
+        `      name: '${visionUrl}'`,
         `      config: {}`,
         // 客户端插件按包名引用（已物化到 profile node_modules）
         `    - id: dsh-runner-meta`,

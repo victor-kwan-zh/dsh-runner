@@ -15,18 +15,31 @@ export const DSH_RUNNER_NS = settingsNamespace("dsh-runner");
 export const DEFAULT_CONFIG = Object.freeze({
   /** 每日费用告警阈值（¥），usage_report 据此返回 exceeded */
   usageAlertThreshold: 10,
+  /** 视觉分析配置（vision_analyze 工具） */
+  vision: Object.freeze({
+    provider: "qwen",
+    model: "",
+    baseUrl: "",
+    apiKey: "",
+  }),
 });
 
 /** 设置 schema（schemastery）。 */
 export const Schema = z.object({
   usageAlertThreshold: z.number().default(DEFAULT_CONFIG.usageAlertThreshold).description("每日费用告警阈值（¥）"),
+  vision: z.object({
+    provider: z.string().default("qwen").description("视觉 provider：qwen / doubao / glm / openai / gemini"),
+    model: z.string().default("").description("覆盖模型名（留空用 provider 默认，如 qwen-vl-max）"),
+    baseUrl: z.string().default("").description("自定义 OpenAI 兼容 baseURL（留空用 provider 默认）"),
+    apiKey: z.string().default("").description("视觉 API Key（留空则读环境变量 VISION_API_KEY / <PROVIDER>_API_KEY）"),
+  }).default({ ...DEFAULT_CONFIG.vision }),
 });
 
 function apply(ctx) {
-  let source = { ...DEFAULT_CONFIG };
+  let source = { ...DEFAULT_CONFIG, vision: { ...DEFAULT_CONFIG.vision } };
   installSettingsSection(ctx, DSH_RUNNER_NS, Schema, source, {
     setSource: (current) => {
-      source = current ?? { ...DEFAULT_CONFIG };
+      source = current ?? { ...DEFAULT_CONFIG, vision: { ...DEFAULT_CONFIG.vision } };
     },
     onChange: () => {},
   });
@@ -34,7 +47,7 @@ function apply(ctx) {
   ctx.provide("dshRunnerConfig", {
     get: () => source,
   });
-  console.log("[settings-dsh-runner] 设置分区已注册（usageAlertThreshold 默认 ¥10）");
+  console.log("[settings-dsh-runner] 设置分区已注册（usageAlertThreshold 默认 ¥10，vision 默认 qwen）");
 }
 
 export { apply, inject, name, Config };
