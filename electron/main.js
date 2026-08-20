@@ -376,6 +376,7 @@ async function startDsh() {
     const pluginUrl = pathToFileURL(path.join(__dirname, "desktop-plugin", "index.mjs")).href;
     const gitPluginUrl = pathToFileURL(path.join(__dirname, "git-tools", "index.mjs")).href;
     const changesetPluginUrl = pathToFileURL(path.join(__dirname, "changeset-tools", "index.mjs")).href;
+    const semanticIndexUrl = pathToFileURL(path.join(__dirname, "semantic-index", "index.mjs")).href;
     const patchFile = path.join(app.getPath("userData"), "desktop.patch.yml");
     fs.writeFileSync(
       patchFile,
@@ -389,6 +390,9 @@ async function startDsh() {
         `      config: {}`,
         `    - id: changeset-tools`,
         `      name: '${changesetPluginUrl}'`,
+        `      config: {}`,
+        `    - id: semantic-index`,
+        `      name: '${semanticIndexUrl}'`,
         `      config: {}`,
         "",
       ].join("\n"),
